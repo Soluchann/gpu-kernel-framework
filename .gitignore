@@ -1,0 +1,40 @@
+# Virtual environments
+.venv/
+env/
+venv/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Build directories
+build/
+cmake-build-debug/
+CMakeCache.txt
+CMakeFiles/
+Makefile
+cmake_install.cmake
+_install_manifest.txt
+
+# Compiled binaries
+*.so
+*.dll
+*.dylib
+*.a
+*.o
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+.vs/
+
+# OS files
+.DS_Store
+Thumbs.db
