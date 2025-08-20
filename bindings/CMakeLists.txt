@@ -27,3 +27,20 @@ target_include_directories(kernel_lib PRIVATE
 )
 
 target_link_libraries(kernel_lib PRIVATE eltwise_kernel ${CUDA_LIBRARIES})
+
+# Build matmul kernel
+add_library(matmul_kernel STATIC
+    ../kernels/matmul/matmul.cu
+)
+
+set_target_properties(matmul_kernel PROPERTIES
+    POSITION_INDEPENDENT_CODE ON
+)
+
+target_include_directories(matmul_kernel PRIVATE
+    ../kernels/matmul
+    ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}
+)
+
+# Already have pybind11_add_module(kernel_lib ...) above
+target_link_libraries(kernel_lib PRIVATE matmul_kernel)

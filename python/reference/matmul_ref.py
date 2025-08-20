@@ -1,4 +1,4 @@
 import torch
 
-def matmul(a, b):
+def matmul_fp16(a, b):
     return torch.matmul(a, b)
