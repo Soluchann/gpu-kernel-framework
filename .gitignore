@@ -38,3 +38,6 @@ _install_manifest.txt
 # OS files
 .DS_Store
 Thumbs.db
+
+# Test data binaries
+*.bin
