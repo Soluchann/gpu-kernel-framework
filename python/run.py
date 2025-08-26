@@ -82,6 +82,13 @@ class Conv2D(Operator):
                 p["K"], p["R"], p["S"],
                 p["stride"], p["padding"]
             )
+        elif "bf16" in kernel_name:
+            kernel_lib.conv2d_bf16_cu(
+                inputs["X"], inputs["Weights"], out,
+                p["N"], p["C"], p["H"], p["W"],
+                p["K"], p["R"], p["S"],
+                p["stride"], p["padding"]
+            )
         else:
             raise ValueError("Unsupported data type for Conv2D")
         return out
@@ -202,7 +209,42 @@ def run_test_case(kernel_name, test_name, test_path):
             torch.cuda.synchronize()
             kernel_time = time.time() - start
 
-        else:
+        elif operator_name == "matmul":
+            expected_shape = case["expected"].shape
+            expected = data_handler["load"](os.path.join(test_path, "expected_output.bin"), expected_shape)
+
+            if len(case["shape"]) == 3:
+                m, n, k = case["shape"]
+            else:
+                m, k = case["shape"]
+                n = expected_shape[1]
+
+            shape_a = (m, k)
+            shape_b = (k, n)
+
+            a = data_handler["load"](os.path.join(test_path, "A.bin"), shape_a)
+            b = data_handler["load"](os.path.join(test_path, "B.bin"), shape_b)
+
+
+            # PyTorch Baseline
+            a_pt = data_handler["to_torch"](a).to('cuda').to(data_handler["torch_dtype"])
+            b_pt = data_handler["to_torch"](b).to('cuda').to(data_handler["torch_dtype"])
+            torch.cuda.synchronize()
+            start = time.time()
+            ref_out = operator.get_pytorch_baseline(a_pt, b_pt)
+            torch.cuda.synchronize()
+            torch_time = time.time() - start
+
+            # Kernel Execution
+            a_kernel = data_handler["to_kernel"](a)
+            b_kernel = data_handler["to_kernel"](b)
+            torch.cuda.synchronize()
+            start = time.time()
+            actual_kernel_out = operator.get_kernel_call(kernel_lib, a_kernel, b_kernel, shape_a, expected_shape, kernel_name)
+            torch.cuda.synchronize()
+            kernel_time = time.time() - start
+
+        elif operator_name == "eltw_add":
             # Original, simple logic for EltwiseAdd and MatMul
             shape = case["shape"]
             expected_shape = case["expected"].shape
@@ -238,7 +280,7 @@ def run_test_case(kernel_name, test_name, test_path):
             "PyTorch Time (ms)": f"{torch_time * 1000:.3f}",
             "Kernel Time (ms)": f"{kernel_time * 1000:.3f}",
             "Max Error": f"{max_error:.6f}",
-            "Status": "✅ Pass" if passed else "❌ Fail"
+            "Status": "Pass" if passed else "Fail"
         })
 
     except Exception as e:
@@ -249,7 +291,7 @@ def run_test_case(kernel_name, test_name, test_path):
             "PyTorch Time (ms)": "–",
             "Kernel Time (ms)": "–",
             "Max Error": "–",
-            "Status": "❌ Error",
+            "Status": "Error",
             "Error": str(e)[:100]
         })
 
@@ -257,23 +299,44 @@ def run_test_case(kernel_name, test_name, test_path):
 
 def print_results(results):
     if not results:
-        print("📭 No test cases were run.")
+        print("No test cases were run.")
         return
 
     print("\n Test Results")
     print(tabulate(results, headers="keys", tablefmt="grid"))
 
-    passed = sum(1 for r in results if "✅" in r["Status"])
+    passed = sum(1 for r in results if "Pass" in r["Status"])
     failed = len(results) - passed
     print(f"\n{passed} passed |{failed} failed")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run kernel tests")
+    parser.add_argument("path", nargs='?', default=None, help="Optional path to a specific kernel or test to run.")
     parser.add_argument("--k", "--kernel", dest="kernel_filter", help="Filter by kernel name (e.g., eltw_add_fp16)")
     parser.add_argument("--t", "--test", dest="test_filter", help="Filter by test case name (e.g., test_1)")
     parser.add_argument("--bld", "--build_dir", dest="build_dir", default="../build", help="Path to the build directory containing kernel_lib")
 
     args = parser.parse_args()
+    kernel_filter = args.kernel_filter
+    test_filter = args.test_filter
+
+    if args.path and not (kernel_filter or test_filter):
+        path = os.path.normpath(args.path)
+        abs_path = os.path.abspath(path)
+        
+        if KERNELS_DIR in abs_path:
+            relative_path = os.path.relpath(abs_path, KERNELS_DIR)
+            parts = relative_path.split(os.sep)
+            
+            if len(parts) > 0:
+                kernel_filter = parts[0]
+            if len(parts) > 2 and parts[1] == "tests":
+                test_filter = parts[2]
+
+    if kernel_filter:
+        kernel_filter = os.path.basename(os.path.normpath(kernel_filter))
+    if test_filter:
+        test_filter = os.path.basename(os.path.normpath(test_filter))
 
     build_bindings_path = os.path.join(os.path.abspath(args.build_dir), "bindings")
     sys.path.insert(0, build_bindings_path)
@@ -281,12 +344,12 @@ if __name__ == "__main__":
     try:
         import kernel_lib
     except ImportError as e:
-        print(f"❌ Failed to import kernel_lib from {build_bindings_path}")
+        print(f"Failed to import kernel_lib from {build_bindings_path}")
         print(e)
         sys.exit(1)
 
-    results = discover_and_run_tests(args.kernel_filter, args.test_filter)
+    results = discover_and_run_tests(kernel_filter, test_filter)
     print_results(results)
 
-    if any("❌" in r["Status"] for r in results):
+    if any("Fail" in r["Status"] or "Error" in r["Status"] for r in results):
         sys.exit(1)
