@@ -132,13 +132,33 @@ py::array_t<uint16_t> conv2d_fp16_wrapper(
     return Y_arr;
 }
 
+py::array_t<uint16_t> conv2d_bf16_wrapper(
+    py::array_t<uint16_t> X_arr, py::array_t<uint16_t> W_arr, py::array_t<uint16_t> Y_arr,
+    int N, int C, int H, int W_in,
+    int K, int R, int S,
+    int stride, int padding
+) {
+    auto bufX = X_arr.request(), bufW = W_arr.request(), bufY = Y_arr.request();
 
-// 🔥 Required: Module definition
+    if (bufX.size != N * C * H * W_in) throw std::runtime_error("Input tensor size mismatch");
+    if (bufW.size != K * C * R * S) throw std::runtime_error("Weight tensor size mismatch");
+
+    launch_conv2d_bf16(
+        static_cast<uint16_t*>(bufX.ptr),
+        static_cast<uint16_t*>(bufW.ptr),
+        static_cast<uint16_t*>(bufY.ptr),
+        N, C, H, W_in, K, R, S, stride, padding
+    );
+    return Y_arr;
+}
+
+
 PYBIND11_MODULE(kernel_lib, m) {
-    m.doc() = "CUDA FP16 element-wise add";
+    m.doc() = "CUDA kernel bindings";
     m.def("eltwise_add_fp16_cu", &eltwise_add_fp16_wrapper, "Add two tensors in FP16");
     m.def("matmul_fp16_cu", &matmul_fp16_wrapper, "FP16 matmul: (MxK) @ (KxN)");
     m.def("eltwise_add_bf16_cu", &eltwise_add_bf16_wrapper, "BF16 element-wise add");
     m.def("matmul_bf16_cu", &matmul_bf16_wrapper, "BF16 matmul: (MxK) @ (KxN)");
     m.def("conv2d_fp16_cu", &conv2d_fp16_wrapper, "FP16 Conv2D (NCHW)");
+    m.def("conv2d_bf16_cu", &conv2d_bf16_wrapper, "BF16 Conv2D (NCHW)");
 }

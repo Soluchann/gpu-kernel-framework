@@ -26,3 +26,8 @@ void launch_conv2d_fp16(
     int N, int C, int H, int W_in,
     int K, int R, int S,
     int stride, int padding);
+void launch_conv2d_bf16(
+    const uint16_t* h_X, const uint16_t* h_W, uint16_t* h_Y,
+    int N, int C, int H, int W_in,
+    int K, int R, int S,
+    int stride, int padding);

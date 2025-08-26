@@ -1,0 +1,25 @@
+import torch
+import torch.nn.functional as F
+
+def generate_case():
+    """
+    Generates a test case with a stride of 2 for BF16 convolution.
+    """
+    params = {
+        "N": 1, "C": 8, "H": 32, "W": 32,
+        "K": 16, "R": 3, "S": 3,
+        "stride": 2, "padding": 1
+    }
+    H_out = (params["H"] - params["R"] + 2 * params["padding"]) // params["stride"] + 1
+    W_out = (params["W"] - params["S"] + 2 * params["padding"]) // params["stride"] + 1
+    output_shape = (params["N"], params["K"], H_out, W_out)
+    X = torch.randn(params["N"], params["C"], params["H"], params["W"]).bfloat16()
+    Weights = torch.randn(params["K"], params["C"], params["R"], params["S"]).bfloat16()
+    expected_out = F.conv2d(X, Weights, stride=params["stride"], padding=params["padding"])
+    return {
+        "name": "conv2d_bf16_strided",
+        "params": params,
+        "inputs": {"X": X, "Weights": Weights},
+        "shape": output_shape,
+        "expected": expected_out,
+    }
