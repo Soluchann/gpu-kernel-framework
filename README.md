@@ -56,6 +56,14 @@ A framework for developing and testing custom GPU kernels, with a focus on deep 
 
 ## Run Tests
 
+To generate data use `python/generate.py`
+
+*   **Generate test bins**:
+*   ```bash
+    bazel run //python:generate
+    ```
+Use simliar args like run.py to generate specific bins
+
 The `python/run.py` script executes tests using the generated data.
 
 *   **Run all tests**:
