@@ -4,7 +4,7 @@ import sys
 import importlib.util
 import argparse
 import torch
-from utils.io import save_fp16, save_bf16
+from python.utils.io import save_fp16, save_bf16
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(PROJECT_ROOT)

@@ -1,8 +1,8 @@
 #include <cuda_fp16.h>
 #include <cuda_runtime.h>
 #include <iostream>
-#include "kernels.cu.h"
-#include "gpu_utils.cu"
+#include "../kernels.cu.h"
+#include "gpu_utils.h"
 
 __global__ void conv2d_fp16_kernel(
     const __half* X, const __half* W, __half* Y,

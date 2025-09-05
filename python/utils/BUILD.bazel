@@ -1,0 +1,9 @@
+# python/utils/BUILD.bazel
+
+load("@rules_python//python:defs.bzl", "py_library")
+
+py_library(
+    name = "io",
+    srcs = ["io.py"],
+    visibility = ["//visibility:public"], 
+)

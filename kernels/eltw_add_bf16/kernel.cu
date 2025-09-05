@@ -1,8 +1,8 @@
 // kernels/eltwise/eltwise_bf16.cu
-#include "kernels.cu.h"
+#include "../kernels.cu.h"
 #include <cuda_bf16.h>
 #include <cuda_runtime.h>
-#include "gpu_utils.cu"
+#include "gpu_utils.h"
 
 __global__ void eltwise_add_bf16_kernel(
     const __nv_bfloat16* A,

@@ -1,0 +1,15 @@
+load("@pybind11_bazel//:build_defs.bzl", "pybind_extension")
+
+pybind_extension(
+    name = "kernel_lib",
+    srcs = ["kernel_bindings.cpp"],
+    deps = [
+        "//kernels:eltw_add_fp16",
+        "//kernels:eltw_add_bf16",
+        "//kernels:matmul_fp16",
+        "//kernels:matmul_bf16",
+        "//kernels:conv2d_fp16",
+        "//kernels:conv2d_bf16",
+    ],
+    visibility = ["//visibility:public"],
+)

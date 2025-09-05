@@ -6,7 +6,7 @@ import torch
 import time
 import numpy as np
 from tabulate import tabulate
-from utils.io import load_fp16, load_bf16
+from python.utils.io import load_fp16, load_bf16
 import argparse
 import torch.nn.functional as F
 
@@ -15,11 +15,10 @@ PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, PROJECT_ROOT)
 KERNELS_DIR = os.path.join(PROJECT_ROOT, "kernels")
 
-# --- Import Reference Implementations ---
-from reference import ref
+from python.reference import ref
+
 
 # --- Operator Abstraction ---
-
 class Operator:
     """
     Base class for all operators.
@@ -184,9 +183,8 @@ def run_test_case(kernel_name, test_name, test_path):
         
         print(f"Running: {kernel_name} / {test_name} [{case['shape']}]")
 
-        # --- THIS IS THE MAIN CHANGE: HYBRID LOGIC FOR DIFFERENT OPERATORS ---
         if operator_name == "conv2d":
-            # New, flexible logic for Conv2D
+            # Conv2D
             params = case.get("params", {})
             inputs_np = {name: data_handler["load"](os.path.join(test_path, f"{name}.bin"), tensor.shape)
                          for name, tensor in case["inputs"].items()}
@@ -245,7 +243,7 @@ def run_test_case(kernel_name, test_name, test_path):
             kernel_time = time.time() - start
 
         elif operator_name == "eltw_add":
-            # Original, simple logic for EltwiseAdd and MatMul
+            # EltwiseAdd and MatMul
             shape = case["shape"]
             expected_shape = case["expected"].shape
             a = data_handler["load"](os.path.join(test_path, "A.bin"), shape)
@@ -270,7 +268,7 @@ def run_test_case(kernel_name, test_name, test_path):
             torch.cuda.synchronize()
             kernel_time = time.time() - start
 
-        # --- Compare (common logic for all operators) ---
+        # --- Compare ---
         actual = data_handler["from_kernel"](actual_kernel_out, case["expected"].shape)
         passed = np.allclose(actual, expected, rtol=data_handler["rtol"], atol=data_handler["atol"])
         max_error = np.max(np.abs(actual - expected))
@@ -342,7 +340,7 @@ if __name__ == "__main__":
     sys.path.insert(0, build_bindings_path)
 
     try:
-        import kernel_lib
+        from bindings import kernel_lib
     except ImportError as e:
         print(f"Failed to import kernel_lib from {build_bindings_path}")
         print(e)

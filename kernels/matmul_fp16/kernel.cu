@@ -1,8 +1,8 @@
-#include "kernels.cu.h"
+#include "../kernels.cu.h"
 #include <cuda_fp16.h>
 #include <cuda_runtime.h>
 #include <iostream>
-#include "gpu_utils.cu"
+#include "gpu_utils.h"
 
 __global__ void matmul_fp16_kernel(
     const __half* A,

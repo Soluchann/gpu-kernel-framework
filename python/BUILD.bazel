@@ -1,0 +1,28 @@
+# python/BUILD.bazel
+
+load("@rules_python//python:defs.bzl", "py_binary")
+
+py_binary(
+    name = "generate",
+    srcs = ["generate.py"],
+    main = "generate.py",
+    deps = [
+        "//python/utils:io",
+    ],
+    data = [
+        "//kernels:kernels_dir",
+    ],
+)
+
+py_binary(
+    name = "run",
+    srcs = ["run.py"],
+    main = "run.py",
+    data = ["//kernels:test_data"],
+    deps = [
+        "//python/utils:io",
+        "//python/reference:ref",
+        "//bindings:kernel_lib",
+    ],
+    visibility = ["//visibility:public"],
+)

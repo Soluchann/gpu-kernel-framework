@@ -2,6 +2,7 @@
 .venv/
 env/
 venv/
+.venv11/
 
 # Python
 __pycache__/
@@ -41,3 +42,5 @@ Thumbs.db
 
 # Test data binaries
 *.bin
+
+/bazel-*

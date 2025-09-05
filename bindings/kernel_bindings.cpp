@@ -2,7 +2,7 @@
 #include <pybind11/numpy.h>
 #include <cuda_fp16.h>
 #include <vector>
-#include "kernels.cu.h"  
+#include "../kernels/kernels.cu.h"  
 
 namespace py = pybind11;
 

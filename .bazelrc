@@ -1,0 +1,7 @@
+
+# Use Bzlmod instead of WORKSPACE
+common --enable_bzlmod
+build --cxxopt=-std=c++17
+build --features=header_modules
+build --extra_toolchains=@rules_python//python:autodetecting_toolchain_nonstrict
+build --enable_runfiles

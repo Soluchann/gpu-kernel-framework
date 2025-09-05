@@ -1,0 +1,11 @@
+# src/BUILD.bazel
+
+load("@rules_cc//cc:defs.bzl", "cc_library")
+load("@rules_cuda//cuda:defs.bzl", "cuda_library")
+
+cc_library(
+    name = "gpu_utils",
+    hdrs = ["gpu_utils.h"],
+    copts = ["-Isrc"],
+    visibility = ["//visibility:public"],
+)

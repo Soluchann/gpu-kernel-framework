@@ -1,8 +1,8 @@
 #include <cuda_bf16.h>
 #include <cuda_runtime.h>
 #include <iostream>
-#include "kernels.cu.h"
-#include "gpu_utils.cu"
+#include "../kernels.cu.h"
+#include "gpu_utils.h"
 
 __global__ void conv2d_bf16_kernel(
     const __nv_bfloat16* X, const __nv_bfloat16* W, __nv_bfloat16* Y,

@@ -1,0 +1,29 @@
+###############################################################################
+# Bazel now uses Bzlmod by default to manage external dependencies.
+# Please consider migrating your external dependencies from WORKSPACE to MODULE.bazel.
+#
+# For more details, please check https://github.com/bazelbuild/bazel/issues/18958
+###############################################################################
+
+module(name = "gpu_kernel_framework", version = "0.1.0")
+
+bazel_dep(name = "bazel_skylib", version = "1.7.1")
+bazel_dep(name = "rules_python", version = "0.40.0")
+bazel_dep(name = "rules_cuda", version = "0.2.5")
+bazel_dep(name = "rules_cc", version = "0.1.1")
+bazel_dep(name = "pybind11_bazel", version = "2.13.6")
+bazel_dep(name = "platforms", version = "1.0.0")
+
+http_archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+http_archive(
+    name = "pybind11",
+    sha256 = "e08cb87f4773da97fa7b5f035de8763abc656d87d5773e62f6da0587d1f0ec20",
+    strip_prefix = "pybind11-2.13.6",
+    urls = [
+        "https://github.com/pybind/pybind11/archive/v2.13.6.tar.gz",
+    ],
+    build_file = "@pybind11_bazel//:pybind11-BUILD.bazel",
+)
+
+
+
