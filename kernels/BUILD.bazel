@@ -1,66 +1,29 @@
+# kernels/BUILD.bazel
 load("@rules_cc//cc:defs.bzl", "cc_library")
 load("@rules_cuda//cuda:defs.bzl", "cuda_library")
 
-# A filegroup for the shared header file.
 filegroup(
     name = "kernels_header",
     srcs = ["kernels.cu.h"],
     visibility = ["//visibility:public"],
 )
 
-# Build a static library for each kernel
-cuda_library(
-    name = "eltw_add_fp16",
-    srcs = ["eltw_add_fp16/kernel.cu"],
-    hdrs = [":kernels_header"],
-    deps = ["//src:gpu_utils"],
-    copts = ["-Isrc"],
-    visibility = ["//bindings:__pkg__"],
-)
+[
+    cuda_library(
+        name = dir.split("/")[0],
+        srcs = [dir],
+        hdrs = [":kernels_header"],
+        deps = ["//src:gpu_utils"],
+        copts = ["-Isrc"],
+        visibility = ["//bindings:__pkg__"],
+    )
+    for dir in glob(["*/kernel.cu"])
+]
 
-cuda_library(
-    name = "eltw_add_bf16",
-    srcs = ["eltw_add_bf16/kernel.cu"],
-    hdrs = [":kernels_header"],
-    deps = ["//src:gpu_utils"],
-    copts = ["-Isrc"],
-    visibility = ["//bindings:__pkg__"],
-)
-
-cuda_library(
-    name = "matmul_fp16",
-    srcs = ["matmul_fp16/kernel.cu"],
-    hdrs = [":kernels_header"],
-    deps = ["//src:gpu_utils"],
-    copts = ["-Isrc"],
-    visibility = ["//bindings:__pkg__"],
-)
-
-cuda_library(
-    name = "matmul_bf16",
-    srcs = ["matmul_bf16/kernel.cu"],
-    hdrs = [":kernels_header"],
-    deps = ["//src:gpu_utils"],
-    copts = ["-Isrc"],
-    visibility = ["//bindings:__pkg__"],
-)
-
-cuda_library(
-    name = "conv2d_fp16",
-    srcs = ["conv2d_fp16/kernel.cu"],
-    hdrs = [":kernels_header"],
-    deps = ["//src:gpu_utils"],
-    copts = ["-Isrc"],
-    visibility = ["//bindings:__pkg__"],
-)
-
-cuda_library(
-    name = "conv2d_bf16",
-    srcs = ["conv2d_bf16/kernel.cu"],
-    hdrs = [":kernels_header"],
-    deps = ["//src:gpu_utils"],
-    copts = ["-Isrc"],
-    visibility = ["//bindings:__pkg__"],
+cc_library(
+    name = "all_kernels",
+    deps = [":" + dir.split("/")[0] for dir in glob(["*/kernel.cu"])],
+    visibility = ["//visibility:public"],
 )
 
 filegroup(

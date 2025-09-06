@@ -63,12 +63,12 @@ def run_generate_and_save(selected_kernel=None, selected_test=None):
         case = module.generate_case()
         case["kernel"] = kernel
         case["test_name"] = test_name
-        case["path"] = test_path  # Override path to local dir
+        case["path"] = test_path 
 
         inputs = case["inputs"]
         expected = case["expected"]
 
-        # Save inputs
+    
         for name, tensor in inputs.items():
             filepath = os.path.join(test_path, f"{name}.bin")
             if "bf16" in kernel.lower():
@@ -77,7 +77,7 @@ def run_generate_and_save(selected_kernel=None, selected_test=None):
             else:
                 save_fp16(tensor.cpu().numpy(), filepath)
 
-        # Save expected
+        
         expected_path = os.path.join(test_path, "expected_output.bin")
         if "bf16" in kernel.lower():
             data = expected.view(torch.uint16).cpu().numpy()
@@ -99,7 +99,6 @@ if __name__ == "__main__":
     kernel = args.kernel
     test = args.test
 
-    # If a path is provided to --test, extract kernel and test names
     if test and ('/' in test or '\\' in test):
         path = os.path.normpath(test)
         abs_path = os.path.abspath(path)
@@ -111,11 +110,11 @@ if __name__ == "__main__":
             if len(parts) > 1:
                 test = parts[-1]
 
-    # If a path is provided to --kernel, extract just the kernel name
+
     if kernel and ('/' in kernel or '\\' in kernel):
          kernel = os.path.basename(os.path.normpath(kernel))
     
-    # Final cleanup of test name just in case
+    
     if test:
         test = os.path.basename(os.path.normpath(test))
 
