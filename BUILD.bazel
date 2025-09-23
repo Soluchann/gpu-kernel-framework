@@ -1,0 +1,21 @@
+# Root BUILD.bazel file
+
+# Load the necessary rules from bazel_skylib
+load("@bazel_skylib//rules:common_settings.bzl", "string_flag")
+
+package(default_visibility = ["//visibility:public"])
+
+# This flag allows us to switch between GPU targets.
+string_flag(
+    name = "gpu",
+    build_setting_default = "nvidia",
+)
+
+# This gives a name to the condition where the 'gpu' flag is set to 'amd'.
+# We can now refer to this as "//:rocm_config".
+config_setting(
+    name = "rocm_config",
+    flag_values = {
+        ":gpu": "amd",
+    },
+)

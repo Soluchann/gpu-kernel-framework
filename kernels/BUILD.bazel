@@ -1,42 +1,59 @@
 # kernels/BUILD.bazel
-load("@rules_cc//cc:defs.bzl", "cc_library")
+
 load("@rules_cuda//cuda:defs.bzl", "cuda_library")
+load("@rules_cc//cc:defs.bzl", "cc_library")
 
 filegroup(
     name = "kernels_header",
-    srcs = ["kernels.cu.h"],
+    srcs = ["kernels.h"],
     visibility = ["//visibility:public"],
 )
 
-[
-    cuda_library(
-        name = dir.split("/")[0],
-        srcs = [dir],
-        hdrs = [":kernels_header"],
-        deps = ["//src:gpu_utils"],
-        copts = ["-Isrc"],
-        visibility = ["//bindings:__pkg__"],
-    )
-    for dir in glob(["*/kernel.cu"])
-]
+# Target for NVIDIA build using the standard cuda_library rule
+cuda_library(
+    name = "all_kernels_nv",
+    srcs = glob(["*/*.hip.cpp"]),
+    hdrs = [":kernels_header"],
+    deps = ["//src:gpu_runtime"],
+    tags = ["nvidia-only"],
+)
 
+# Target for AMD build using a standard cc_library with HIP flags
 cc_library(
+    name = "all_kernels_amd",
+    srcs = glob(["*/*.hip.cpp"]),
+    hdrs = [":kernels_header"],
+    deps = ["//src:gpu_runtime"],
+    copts = ["-x hip"],
+    tags = ["amd-only"], # Add any other necessary HIP flags here
+)
+
+# Alias that selects the correct implementation based on the configuration.
+# The bindings/ and other dependencies will point to this virtual target.
+alias(
     name = "all_kernels",
-    deps = [":" + dir.split("/")[0] for dir in glob(["*/kernel.cu"])],
+    actual = select({
+        "//:rocm_config": ":all_kernels_amd",
+        "//conditions:default": ":all_kernels_nv",
+    }),
     visibility = ["//visibility:public"],
 )
 
+# --- Filegroups remain the same ---
 filegroup(
     name = "kernels_dir",
-    srcs = glob(["**/*"]),
+    srcs = glob(["**/*"], allow_empty = True),
     visibility = ["//visibility:public"],
 )
 
 filegroup(
     name = "test_data",
-    srcs = glob([
-        "**/tests/**/*.bin",
-        "**/tests/**/*.py",
-    ]),
+    srcs = glob(
+        [
+            "**/tests/**/*.bin",
+            "**/tests/**/*.py",
+        ],
+        allow_empty = True,
+    ),
     visibility = ["//visibility:public"],
 )

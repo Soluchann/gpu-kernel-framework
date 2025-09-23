@@ -1,8 +1,9 @@
-#include <cuda_fp16.h>
-#include <cuda_runtime.h>
+#pragma once
+
+#include "gpu_runtime.h"
 #include <cstdint>
 
-void launch_eltwise_add_fp16(const __half* h_A, const __half* h_B, __half* h_Out, int N);
+void launch_eltwise_add_fp16(const gpuHalf* h_A, const gpuHalf* h_B, gpuHalf* h_Out, int N);
 void launch_eltwise_add_bf16(
     const uint16_t* h_A,
     const uint16_t* h_B,

@@ -1,11 +1,8 @@
-#include <cuda_fp16.h>
-#include <cuda_runtime.h>
-#include <iostream>
-#include "../kernels.cu.h"
-#include "gpu_utils.h"
+#include "gpu_runtime.h"
+#include "../kernels.h"
 
 __global__ void conv2d_fp16_kernel(
-    const __half* X, const __half* W, __half* Y,
+    const gpuHalf* X, const gpuHalf* W, gpuHalf* Y,
     int N, int C, int H, int W_in,
     int K, int R, int S,
     int stride, int padding,
@@ -42,24 +39,24 @@ void launch_conv2d_fp16(
     int K, int R, int S,
     int stride, int padding) {
 
-    const __half* X = reinterpret_cast<const __half*>(h_X);
-    const __half* W = reinterpret_cast<const __half*>(h_W);
-    __half* Y = reinterpret_cast<__half*>(h_Y);
+    const gpuHalf* X = reinterpret_cast<const gpuHalf*>(h_X);
+    const gpuHalf* W = reinterpret_cast<const gpuHalf*>(h_W);
+    gpuHalf* Y = reinterpret_cast<gpuHalf*>(h_Y);
 
     const int H_out = (H - R + 2 * padding) / stride + 1;
     const int W_out = (W_in - S + 2 * padding) / stride + 1;
 
-    const size_t input_bytes = N * C * H * W_in * sizeof(__half);
-    const size_t weight_bytes = K * C * R * S * sizeof(__half);
-    const size_t output_bytes = N * K * H_out * W_out * sizeof(__half);
+    const size_t input_bytes = N * C * H * W_in * sizeof(gpuHalf);
+    const size_t weight_bytes = K * C * R * S * sizeof(gpuHalf);
+    const size_t output_bytes = N * K * H_out * W_out * sizeof(gpuHalf);
 
-    __half *d_X, *d_W, *d_Y;
-    CUDA_CHECK(cudaMalloc(&d_X, input_bytes));
-    CUDA_CHECK(cudaMalloc(&d_W, weight_bytes));
-    CUDA_CHECK(cudaMalloc(&d_Y, output_bytes));
+    gpuHalf *d_X, *d_W, *d_Y;
+    GPU_CHECK(gpuMalloc(&d_X, input_bytes));
+    GPU_CHECK(gpuMalloc(&d_W, weight_bytes));
+    GPU_CHECK(gpuMalloc(&d_Y, output_bytes));
 
-    CUDA_CHECK(cudaMemcpy(d_X, X, input_bytes, cudaMemcpyHostToDevice));
-    CUDA_CHECK(cudaMemcpy(d_W, W, weight_bytes, cudaMemcpyHostToDevice));
+    GPU_CHECK(gpuMemcpy(d_X, X, input_bytes, gpuMemcpyHostToDevice));
+    GPU_CHECK(gpuMemcpy(d_W, W, weight_bytes, gpuMemcpyHostToDevice));
 
     dim3 threads_per_block(16, 16, 1);
     dim3 blocks_in_grid(
@@ -68,18 +65,16 @@ void launch_conv2d_fp16(
         N * K
     );
 
-    conv2d_fp16_kernel<<<blocks_in_grid, threads_per_block>>>(
+    hipLaunchKernelGGL(conv2d_fp16_kernel, blocks_in_grid, threads_per_block, 0, 0,
         d_X, d_W, d_Y, N, C, H, W_in, K, R, S, stride, padding, H_out, W_out
     );
     
-    CUDA_CHECK(cudaGetLastError());
-    CUDA_CHECK(cudaDeviceSynchronize());
+    GPU_CHECK(gpuGetLastError());
+    GPU_CHECK(gpuDeviceSynchronize());
 
-    CUDA_CHECK(cudaMemcpy(Y, d_Y, output_bytes, cudaMemcpyDeviceToHost));
+    GPU_CHECK(gpuMemcpy(Y, d_Y, output_bytes, gpuMemcpyDeviceToHost));
 
-    CUDA_CHECK(cudaFree(d_X));
-    CUDA_CHECK(cudaFree(d_W));
-    CUDA_CHECK(cudaFree(d_Y));
+    GPU_CHECK(gpuFree(d_X));
+    GPU_CHECK(gpuFree(d_W));
+    GPU_CHECK(gpuFree(d_Y));
 }
-
-

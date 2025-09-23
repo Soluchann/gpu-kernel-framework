@@ -1,0 +1,9 @@
+# tools/cuda/BUILD.bazel
+
+# A dummy library to satisfy rules_cuda's expectation of //external:cuda_runtime or similar
+cc_library(
+    name = "cuda_runtime",
+    srcs = [],  # no sources
+    hdrs = [],  # no headers
+    visibility = ["//visibility:public"],
+)

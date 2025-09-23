@@ -27,7 +27,7 @@ def visualize_enhanced_errors(actual, expected, kernel_name, test_name, data_han
     """
     diff = np.abs(actual - expected)
     error_mask = diff > (data_handler["atol"] + data_handler["rtol"] * np.abs(expected))
-    
+
     # Convert to uint16 representations
     expected_u16 = np.frombuffer(expected.tobytes(), dtype=np.uint16).reshape(expected.shape)
     if actual_u16_raw is not None:
@@ -35,25 +35,25 @@ def visualize_enhanced_errors(actual, expected, kernel_name, test_name, data_han
     else:
         # Fallback for BF16
         actual_u16 = (actual.view(np.uint32) >> 16).astype(np.uint16)
-    
+
     xor_vals = expected_u16 ^ actual_u16
-    
+
     # Find mismatches
     mismatch_indices = np.where(error_mask)
     mismatch_count = len(mismatch_indices[0])
-    
+
     if mismatch_count == 0:
         return
-    
+
     print(f"\n=== ENHANCED ERROR ANALYSIS FOR {kernel_name}/{test_name} ===")
     print(f"Total mismatches: {mismatch_count}")
-    
+
     # Show top 10 worst mismatches with full details
     flat_diff = diff.flatten()
     mismatch_flat_indices = np.where(error_mask.flatten())[0]
     top_indices = np.argsort(flat_diff[mismatch_flat_indices])[-10:][::-1]
     top_original_indices = mismatch_flat_indices[top_indices]
-    
+
     for i, flat_idx in enumerate(top_original_indices):
         multi_idx = np.unravel_index(flat_idx, diff.shape)
         exp_val = expected[multi_idx]
@@ -62,20 +62,20 @@ def visualize_enhanced_errors(actual, expected, kernel_name, test_name, data_han
         act_u16 = actual_u16[multi_idx]
         xor_val = xor_vals[multi_idx] if xor_vals.size > 1 else xor_vals.item()
         abs_diff = abs(act_val - exp_val)
-        
+
         print(f"\n--- Mismatch #{i+1} ---")
         print(f"Position: {multi_idx}")
         print(f"Expected: {exp_val:.8f} (0x{exp_u16:04X})")
         print(f"Actual:   {act_val:.8f} (0x{act_u16:04X})")
         print(f"Diff:     {abs_diff:.8f}")
         print(f"XOR:      0x{xor_val:04X}")
-        
+
         # Show bit patterns
         exp_bits = f"{exp_u16:016b}"
         act_bits = f"{act_u16:016b}"
         print(f"Exp bits: {exp_bits}")
         print(f"Act bits: {act_bits}")
-        
+
         # Highlight differing bits
         xor_bits = f"{xor_val:016b}"
         highlighted = ""
@@ -129,14 +129,14 @@ class ErrorAnalyzer:
         """Generate an enhanced report with hex values and bit-level analysis"""
         if self.mismatch_count == 0:
             return
-            
+
         print(f"\n=== DETAILED HEX ANALYSIS FOR {self.kernel_name}/{self.test_name} ===")
-        
+
         # Get top 15 worst mismatches
         flat_diff_mismatch = self.flat_diff[np.where(self.mismatch_mask.flatten())[0]]
         top_indices_local = np.argsort(flat_diff_mismatch)[-15:][::-1]
         top_original_flat_indices = np.where(self.mismatch_mask.flatten())[0][top_indices_local]
-        
+
         for i, flat_idx in enumerate(top_original_flat_indices):
             multi_idx = np.unravel_index(flat_idx, self.diff.shape)
             exp_val = self.expected[multi_idx]
@@ -145,17 +145,17 @@ class ErrorAnalyzer:
             act_u16 = self.actual_u16[multi_idx]
             xor_val = self.xor_vals[multi_idx] if self.xor_vals.size > 1 else self.xor_vals.item()
             abs_diff = abs(act_val - exp_val)
-            
+
             print(f"\n#{i+1} Position {multi_idx}:")
             print(f"  Float: {exp_val:12.6f} vs {act_val:12.6f} (diff: {abs_diff:.2e})")
             print(f"  Hex:   0x{exp_u16:04X} vs 0x{act_u16:04X} (XOR: 0x{xor_val:04X})")
-            
+
             # Bit-level comparison
             exp_bits = f"{exp_u16:016b}"
             act_bits = f"{act_u16:016b}"
             print(f"  Exp:   {exp_bits}")
             print(f"  Act:   {act_bits}")
-            
+
             # Visualize bit differences
             diff_vis = ""
             for j, (e_bit, a_bit) in enumerate(zip(exp_bits, act_bits)):
@@ -452,7 +452,7 @@ def visualize_tensor_errors(actual, expected, kernel_name, test_name, args=None,
         actual_u16 = actual_u16_raw.astype(np.uint16).reshape(expected.shape)
     else:
         actual_u16 = (actual.view(np.uint32) >> 16).astype(np.uint16)
-    
+
     hover_text = np.empty(actual.shape, dtype=object)
     for idx in np.ndindex(actual.shape):
         if error_mask[idx]:
@@ -627,7 +627,7 @@ def run_test_case(kernel_name, test_name, test_path, full_diff):
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
         case = module.generate_case()
-        
+
         print(f"Running: {kernel_name} / {test_name} [{case['shape']}]")
 
         if operator_name == "conv2d":
@@ -641,17 +641,13 @@ def run_test_case(kernel_name, test_name, test_path, full_diff):
             inputs_kernel = {name: data_handler["to_kernel"](tensor) for name, tensor in inputs_np.items()}
 
             # PyTorch Baseline
-            torch.cuda.synchronize()
             start = time.time()
             ref_out = operator.get_pytorch_baseline(inputs_pt, params)
-            torch.cuda.synchronize()
             torch_time = time.time() - start
 
             # Kernel Execution
-            torch.cuda.synchronize()
             start = time.time()
             actual_kernel_out = operator.get_kernel_call(kernel_lib, inputs_kernel, params, kernel_name)
-            torch.cuda.synchronize()
             kernel_time = time.time() - start
 
         elif operator_name == "matmul":
@@ -674,19 +670,15 @@ def run_test_case(kernel_name, test_name, test_path, full_diff):
             # PyTorch Baseline
             a_pt = data_handler["to_torch"](a).to('cuda').to(data_handler["torch_dtype"])
             b_pt = data_handler["to_torch"](b).to('cuda').to(data_handler["torch_dtype"])
-            torch.cuda.synchronize()
             start = time.time()
             ref_out = operator.get_pytorch_baseline(a_pt, b_pt)
-            torch.cuda.synchronize()
             torch_time = time.time() - start
 
             # Kernel Execution
             a_kernel = data_handler["to_kernel"](a)
             b_kernel = data_handler["to_kernel"](b)
-            torch.cuda.synchronize()
             start = time.time()
             actual_kernel_out = operator.get_kernel_call(kernel_lib, a_kernel, b_kernel, shape_a, expected_shape, kernel_name)
-            torch.cuda.synchronize()
             kernel_time = time.time() - start
 
         elif operator_name == "eltw_add":
@@ -700,19 +692,15 @@ def run_test_case(kernel_name, test_name, test_path, full_diff):
             # PyTorch Baseline
             a_pt = data_handler["to_torch"](a).to('cuda').to(data_handler["torch_dtype"])
             b_pt = data_handler["to_torch"](b).to('cuda').to(data_handler["torch_dtype"])
-            torch.cuda.synchronize()
             start = time.time()
             ref_out = operator.get_pytorch_baseline(a_pt, b_pt)
-            torch.cuda.synchronize()
             torch_time = time.time() - start
 
             # Kernel Execution
             a_kernel = data_handler["to_kernel"](a)
             b_kernel = data_handler["to_kernel"](b)
-            torch.cuda.synchronize()
             start = time.time()
             actual_kernel_out = operator.get_kernel_call(kernel_lib, a_kernel, b_kernel, shape, expected_shape, kernel_name)
-            torch.cuda.synchronize()
             kernel_time = time.time() - start
 
         # --- Compare ---
@@ -729,7 +717,7 @@ def run_test_case(kernel_name, test_name, test_path, full_diff):
 
             # Generate enhanced error analysis
             visualize_enhanced_errors(actual, expected, kernel_name, test_name, data_handler, actual_u16_raw=actual_kernel_out)
-            
+
             # Generate error mask binary (as before)
             error_mask = analyzer.mismatch_mask.astype(np.uint8)
             if error_mask.ndim > 2:
@@ -801,19 +789,22 @@ if __name__ == "__main__":
     parser.add_argument("--t", "--test", dest="test_filter", help="Filter by test case name (e.g., test_1)")
     parser.add_argument("--bld", "--build_dir", dest="build_dir", default="../build", help="Path to the build directory containing kernel_lib")
     parser.add_argument("--full-diff", action="store_true", help="Dump ALL mismatches to a detailed text report.")
-    
+    parser.add_argument("--backend", default="nvidia", choices=["nvidia", "amd"], help="Specify the target GPU backend for the test run.")
+
     args = parser.parse_args()
     kernel_filter = args.kernel_filter
     test_filter = args.test_filter
 
+    print(f"Running tests for '{args.backend}' backend...")
+
     if args.path and not (kernel_filter or test_filter):
         path = os.path.normpath(args.path)
         abs_path = os.path.abspath(path)
-        
+
         if KERNELS_DIR in abs_path:
             relative_path = os.path.relpath(abs_path, KERNELS_DIR)
             parts = relative_path.split(os.sep)
-            
+
             if len(parts) > 0:
                 kernel_filter = parts[0]
             if len(parts) > 2 and parts[1] == "tests":
